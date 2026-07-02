@@ -8,6 +8,7 @@ const pino = require('pino');
 const pinoHttp = require('pino-http');
 const { config, assertSafeConfig } = require('./config');
 const { getOne, query } = require('./db/pool');
+const { registerAuthRoutes, requireAuth } = require('./auth');
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
@@ -17,6 +18,8 @@ app.use(cors({ origin: config.publicAppUrl, credentials: true }));
 app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
 app.use(pinoHttp({ logger }));
+
+registerAuthRoutes(app);
 
 app.get('/api/health', async (req, res) => {
   let database = 'unknown';
@@ -60,6 +63,28 @@ app.get('/api/projects/:slug', async (req, res, next) => {
 
     if (!project) return res.status(404).json({ ok: false, error: 'Project not found.' });
     res.json({ ok: true, project });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/dashboard', requireAuth, async (req, res, next) => {
+  try {
+    const projectCount = await getOne('SELECT COUNT(*) AS total FROM projects');
+    const orderCount = await getOne('SELECT COUNT(*) AS total FROM orders');
+    res.json({
+      ok: true,
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        displayName: req.user.display_name,
+        role: req.user.role
+      },
+      stats: {
+        projects: projectCount.total,
+        orders: orderCount.total
+      }
+    });
   } catch (error) {
     next(error);
   }
