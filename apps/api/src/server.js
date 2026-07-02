@@ -9,6 +9,7 @@ const pinoHttp = require('pino-http');
 const { config, assertSafeConfig } = require('./config');
 const { getOne, query } = require('./db/pool');
 const { registerAuthRoutes, requireAuth } = require('./auth');
+const { registerAdminRoutes } = require('./admin');
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use(pinoHttp({ logger }));
 
 registerAuthRoutes(app);
+registerAdminRoutes(app);
 
 app.get('/api/health', async (req, res) => {
   let database = 'unknown';
