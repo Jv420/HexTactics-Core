@@ -96,6 +96,60 @@ function AuthBox({ user, onUserChange }) {
   );
 }
 
+function AdminPanel({ user }) {
+  const [summary, setSummary] = useState(null);
+  const [adminProjects, setAdminProjects] = useState([]);
+  const [message, setMessage] = useState('');
+
+  const isAdmin = user && ['owner', 'admin'].includes(user.role);
+
+  async function loadAdmin() {
+    if (!isAdmin) return;
+    try {
+      const summaryData = await api('/api/admin/summary');
+      const projectsData = await api('/api/admin/projects');
+      setSummary(summaryData.summary);
+      setAdminProjects(projectsData.projects || []);
+      setMessage('Admin data geladen.');
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  useEffect(() => {
+    loadAdmin();
+  }, [user?.id]);
+
+  if (!isAdmin) return null;
+
+  return (
+    <section id="admin" className="section admin-card">
+      <p className="eyebrow">HexTactics Admin</p>
+      <h2>Beheer overzicht</h2>
+      {summary && (
+        <div className="stats-grid">
+          <div><strong>{summary.users}</strong><span>Gebruikers</span></div>
+          <div><strong>{summary.projects}</strong><span>Projecten</span></div>
+          <div><strong>{summary.products}</strong><span>Producten</span></div>
+          <div><strong>{summary.orders}</strong><span>Orders</span></div>
+        </div>
+      )}
+      <h3>Projectbeheer</h3>
+      <div className="admin-list">
+        {adminProjects.map((project) => (
+          <article key={project.slug}>
+            <strong>{project.name}</strong>
+            <span>{project.type} • {project.status}</span>
+            <small>{project.domain || 'Geen domein'} — {project.slug}</small>
+          </article>
+        ))}
+      </div>
+      <button onClick={loadAdmin}>Admin verversen</button>
+      {message && <p className="form-message">{message}</p>}
+    </section>
+  );
+}
+
 function App() {
   const [projects, setProjects] = useState([]);
   const [apiStatus, setApiStatus] = useState('laden');
@@ -138,6 +192,7 @@ function App() {
           <a href="#story">Verhaal</a>
           <a href="#projects">Projecten</a>
           <a href="#identity">Login</a>
+          {user && ['owner', 'admin'].includes(user.role) && <a href="#admin">Admin</a>}
           <a href="#support">Support</a>
         </div>
       </nav>
@@ -200,6 +255,8 @@ function App() {
       <div id="identity">
         <AuthBox user={user} onUserChange={setUser} />
       </div>
+
+      <AdminPanel user={user} />
 
       <section id="support" className="section support">
         <p className="eyebrow">Community first</p>
