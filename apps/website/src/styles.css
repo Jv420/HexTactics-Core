@@ -203,6 +203,43 @@ button.primary {
   background: rgba(37, 99, 235, 0.14);
 }
 
+.admin-card {
+  background: linear-gradient(135deg, rgba(22, 101, 52, 0.22), rgba(15, 23, 42, 0.92));
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.stats-grid div,
+.admin-list article {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(2, 6, 23, 0.5);
+}
+
+.stats-grid strong {
+  font-size: 34px;
+}
+
+.stats-grid span,
+.admin-list span,
+.admin-list small {
+  color: #cbd5e1;
+}
+
+.admin-list {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+
 .support {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.28), rgba(15, 23, 42, 0.88));
 }
