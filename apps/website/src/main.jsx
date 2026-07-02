@@ -11,9 +11,95 @@ function projectLabel(type) {
   return 'Project';
 }
 
+async function api(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'API request failed.');
+  return data;
+}
+
+function AuthBox({ user, onUserChange }) {
+  const [mode, setMode] = useState('login');
+  const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+
+  async function submit(event) {
+    event.preventDefault();
+    setMessage('Even verwerken...');
+
+    try {
+      const data = mode === 'login'
+        ? await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
+        : await api('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password, displayName }) });
+      onUserChange(data.user);
+      setMessage(`Welkom ${data.user.displayName}!`);
+      setPassword('');
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  async function logout() {
+    try {
+      await api('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    onUserChange(null);
+    setMessage('Je bent uitgelogd.');
+  }
+
+  if (user) {
+    return (
+      <section className="section auth-card">
+        <p className="eyebrow">HexTactics ID</p>
+        <h2>Welkom, {user.displayName}</h2>
+        <p>Je bent ingelogd als {user.email}. Rol: {user.role}.</p>
+        <button onClick={logout}>Uitloggen</button>
+      </section>
+    );
+  }
+
+  return (
+    <section className="section auth-card">
+      <p className="eyebrow">HexTactics ID</p>
+      <h2>{mode === 'login' ? 'Inloggen' : 'Account maken'}</h2>
+      <form onSubmit={submit} className="auth-form">
+        {mode === 'register' && (
+          <label>
+            Weergavenaam
+            <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Jouw naam" />
+          </label>
+        )}
+        <label>
+          E-mail
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jij@example.com" />
+        </label>
+        <label>
+          Wachtwoord
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimaal 8 tekens" />
+        </label>
+        <div className="actions">
+          <button type="submit" className="button primary">{mode === 'login' ? 'Inloggen' : 'Registreren'}</button>
+          <button type="button" className="button" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
+            {mode === 'login' ? 'Nieuw account' : 'Ik heb al een account'}
+          </button>
+        </div>
+      </form>
+      {message && <p className="form-message">{message}</p>}
+    </section>
+  );
+}
+
 function App() {
   const [projects, setProjects] = useState([]);
   const [apiStatus, setApiStatus] = useState('laden');
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -32,6 +118,13 @@ function App() {
       } catch {
         setProjects([]);
       }
+
+      try {
+        const me = await api('/api/auth/me');
+        setUser(me.user);
+      } catch {
+        setUser(null);
+      }
     }
 
     loadData();
@@ -44,6 +137,7 @@ function App() {
         <div>
           <a href="#story">Verhaal</a>
           <a href="#projects">Projecten</a>
+          <a href="#identity">Login</a>
           <a href="#support">Support</a>
         </div>
       </nav>
@@ -58,7 +152,7 @@ function App() {
         </p>
         <div className="actions">
           <a className="button primary" href="#projects">Bekijk projecten</a>
-          <a className="button" href="#support">Steun het project</a>
+          <a className="button" href="#identity">Maak account</a>
         </div>
       </section>
 
@@ -102,6 +196,10 @@ function App() {
           )}
         </div>
       </section>
+
+      <div id="identity">
+        <AuthBox user={user} onUserChange={setUser} />
+      </div>
 
       <section id="support" className="section support">
         <p className="eyebrow">Community first</p>
